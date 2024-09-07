@@ -1,0 +1,57 @@
+function  [r, dr] = correxpZ(type,theta, d)
+%CORREXP  Exponential correlation function
+%
+%           n
+%   r_i = prod exp(-theta_j * |d_ij|)
+%          j=1
+%
+% If length(theta) = 1, then the model is isotropic: 
+% theta_j = theta(1), j=1,...,n
+%
+% Call:    r = correxp(theta, d)
+%          [r, dr] = correxp(theta, d)
+%
+% theta :  parameters in the correlation function
+% d     :  m*n matrix with differences between given data points
+% r     :  correlation
+% dr    :  m*n matrix with the Jacobian of r at x. It is
+%          assumed that x is given implicitly by d(i,:) = x - S(i,:), 
+%          where S(i,:) is the i'th design site. 
+
+% hbn@imm.dtu.dk  
+% Last update April 12, 2002
+
+[n m] = size(d);  % number of differences and dimension of data
+lt = length(theta);
+if  lt == 1,  theta = repmat(theta,1,m);
+% elseif  lt ~= m
+%   error(sprintf('Length of theta must be 1 or %d',m))
+else
+  theta = theta(:).';
+end
+
+td=zeros(n,m);
+
+row_z=find(type==0);
+row_x=find(type~=0);
+for i=1:n
+
+    for j=1:m
+        if ismember(j,row_x) %判断是定量因子
+            td(i,j) = abs(d(i,j)) .* (-theta(j)); %定量因子的高斯结构
+        elseif ismember(j,row_z)  %定性因子
+            if d(i,j)~=0  %定性因子的I结构
+                I=1;
+            else
+                I=0;
+            end
+            td(i,j) = -I*theta(j);
+        end
+    end
+end
+
+r = exp(sum(td,2));
+
+if  nargout > 1
+  dr = repmat(-theta,n,1) .* sign(d) .* repmat(r,1,m);
+end
